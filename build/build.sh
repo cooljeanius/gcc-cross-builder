@@ -69,7 +69,10 @@ fi
 # work. Starts by checking for a matching version host compiler X.Y.Z, then for
 # any X.Y and finally for any X. If nothing matches, then it uses the default
 # one (see Dockerfile).
-# This works for X.Y.Z but also for "trunk".
+# This works for X.Y.Z but also for "trunk", even if we use latest trunk as the default.
+export PATH="/opt/compiler-explorer/gcc-trunk/bin:${PATH}"
+export LD_LIBRARY_PATH="/opt/compiler-explorer/gcc-trunk//lib:/opt/compiler-explorer/gcc-trunk/lib64:${LD_LIBRARY_PATH}"
+
 V=${BASEVERSION}
 for i in 1 2 3; do
     F=0
@@ -94,11 +97,14 @@ ${CT} olddefconfig
 sed -i -r 's|CT_ISL_MIRRORS=".*"|CT_ISL_MIRRORS="https://libisl.sourceforge.io/"|g' .config
 if ! ${CT} "build.$(nproc)"; then
     cat build.log
+    cp build.log $(dirname "${OUTPUT}")/"build.$ARCHITECTURE.$VERSION.log"
     exit 1
 fi
 
 export XZ_DEFAULTS="-T 0"
 tar Jcf "${OUTPUT}" -C "${STAGING_DIR}"/.. "gcc-${VERSION}"
+
+
 
 if [[ -n "${S3OUTPUT}" ]]; then
     aws s3 cp --storage-class REDUCED_REDUNDANCY "${OUTPUT}" "${S3OUTPUT}"
